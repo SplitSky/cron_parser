@@ -8,11 +8,11 @@ class CronSpec:
         fields = expression.split()
         if len(fields) != 5:
             raise ValueError("Cron expressions must have 5 fields. Wrong format")
-        #self.minute = self.parse_field(fields[0],0,59)
-        #self.hour = self.parse_field(fields[1], 0, 23)
-        #self.hour = self.parse_field(fields[2], 1, 31)
-        #self.month = self.parse_field(fields[3], 1, 12)
-        #self.weekday = self.parse_field(fields[4], 0, 6)
+        self.minute = self.parse_field(fields[0],0,59)
+        self.hour = self.parse_field(fields[1], 0, 23)
+        self.hour = self.parse_field(fields[2], 1, 31)
+        self.month = self.parse_field(fields[3], 1, 12)
+        self.weekday = self.parse_field(fields[4], 0, 6)
 
     @staticmethod
     def parse_field(self, field: str, min: int, max: int) -> int:
