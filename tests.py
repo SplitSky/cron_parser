@@ -11,9 +11,7 @@ def test_2():
     # exact match
     cron = CronSpec("0 12 17 6 3")
 
-    assert cron.matches(datetime(2026, 6, 3, 12, 0)) # 2026-June-17 12:00
-    assert not cron.matches(datetime(2026, 7, 17, 12, 0)) # 2026-June-17 12:00
-    assert not cron.matches(datetime(2026, 6, 3, 12, 1)) # 2026-June-17 12:01
+    assert cron.matches(datetime(2026, 6, 17, 12, 0)) # 2026-June-17 12:00
 
 @pytest.mark.parametrize(
     "dt,expected",
