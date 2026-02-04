@@ -15,7 +15,7 @@ class CronSpec:
         self.weekday = self.parse_field(fields[4], 0, 6)
 
     def matches(self, dt: datetime) -> bool:
-        cron_weekday = (dt.weekday() + 1) % 1 # lil bit of modulus to fix the range issue
+        cron_weekday = (dt.weekday() + 1) % 7 # lil bit of modulus to fix the range issue
         return bool((self.minute >> dt.minute) & 1 and (self.hour >> dt.hour) & 1 and (self.day >> dt.day) & 1 and (self.month >> dt.month) & 1 and (self.weekday >> cron_weekday) & 1)
     
     def parse_field(self, field: str, min: int, max: int) -> int:
