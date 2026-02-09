@@ -46,3 +46,33 @@ class CronSpec:
                 mask |= 1 << v
 
         return mask
+
+class CronDate:
+
+    __slots__ = ("minute", "hour", "day", "month", "weekday", "date")
+
+    def __init__(self, today: datetime):
+        # set details given the date
+        self.minute = self.parse_date(int(today.minute))
+        self.hour = self.parse_date(int(today.hour))
+        self.day = self.parse_date(int(today.day))
+        self.month = self.parse_date(int(today.month))
+        self.weekday = self.parse_date(int(today.weekday()))
+        self.date = today
+
+    def parse_date(self, field: int) -> int:
+        return 1 << field
+
+    def next_date(self, cron: CronSpec) -> datetime:
+        date_out = self.date
+        year = date_out.year
+        # find next year
+
+
+
+        return date_out
+        
+
+
+
+
