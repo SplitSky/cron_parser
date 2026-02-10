@@ -72,7 +72,7 @@ def main():
     number1 = 21
     super_print(number1)
     number2 = bin(number1)
-    number2 = -number2
+    number2 = -number2)
     number2 = int(number2)
     super_print(number2)
     number3 = ~number1
