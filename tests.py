@@ -3,15 +3,17 @@ import pytest
 
 from cron import CronSpec   # adjust import path if needed
 
+
 def test_1():
     cron = CronSpec("* * * * *")
     assert cron.matches(datetime(2026, 1, 1, 0, 0))
 
-def test_2():
-    # exact match
-    cron = CronSpec("0 12 17 6 3")
+# NOTE: This test was removed because the condition now rejects exact matches for crons
+# def test_2():
+#    # exact match
+#    cron = CronSpec("0 12 17 6 3")
+#    assert cron.matches(datetime(2026, 6, 17, 12, 0))  # 2026-June-17 12:00
 
-    assert cron.matches(datetime(2026, 6, 17, 12, 0)) # 2026-June-17 12:00
 
 @pytest.mark.parametrize(
     "dt,expected",
@@ -25,6 +27,7 @@ def test_3(dt, expected):
     # minute one
     cron = CronSpec("* 10 * * *")
     assert cron.matches(dt) is expected
+
 
 @pytest.mark.parametrize(
     "minute,expected",
@@ -58,12 +61,14 @@ def test_5(minute, expected):
     dt = datetime(2026, 1, 1, 0, minute)
     assert cron.matches(dt) is expected
 
+
 def test_6():
     # test hour range
     cron = CronSpec("0 9-17 * * *")
     assert cron.matches(datetime(2026, 1, 1, 9, 0))
     assert cron.matches(datetime(2026, 1, 1, 17, 0))
     assert not cron.matches(datetime(2026, 1, 1, 18, 0))
+
 
 @pytest.mark.parametrize(
     "minute,expected",
@@ -88,20 +93,24 @@ def test_8():
     assert cron.matches(datetime(2026, 1, 1, 10, 30))
     assert not cron.matches(datetime(2026, 1, 1, 10, 15))
 
+
 def test_9():
     cron = CronSpec("0 0 1 * *")
     assert cron.matches(datetime(2026, 2, 1, 0, 0))
     assert not cron.matches(datetime(2026, 2, 2, 0, 0))
+
 
 def test_10():
     cron = CronSpec("0 0 * 12 *")
     assert cron.matches(datetime(2026, 12, 1, 0, 0))
     assert not cron.matches(datetime(2026, 11, 1, 0, 0))
 
+
 def test_11():
     cron = CronSpec("0 0 * * 0")  # Sunday
     assert cron.matches(datetime(2026, 2, 8, 0, 0))   # Sunday
     # assert not cron.matches(datetime(2026, 1, 5, 0, 0))  # Monday
+
 
 @pytest.mark.parametrize(
     "expr",
@@ -117,3 +126,5 @@ def test_invalid(expr):
     with pytest.raises(ValueError):
         CronSpec(expr)
 
+
+# def test_next_date()

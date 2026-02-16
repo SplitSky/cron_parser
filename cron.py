@@ -1,15 +1,25 @@
-from datetime import datetime
-from typing import Iterable
+from datetime import datetime, timedelta
+from typing import Iterable, Tuple, Union, Optional
 
 
 class CronSpec:
-    __slots__ = ("minute", "hour", "day", "month", "weekday")
+    __slots__ = ("minute", "hour", "day", "month", "weekday", "dow")
 
     def __init__(self, expression: str):
         fields = expression.split()
         if len(fields) != 5:
             raise ValueError(
                 "Cron expressions must have 5 fields. Wrong format")
+
+        if fields[4] != "*" and fields[2] != "*":
+            raise ValueError(
+                "Cron is incorrect. Contains restruction on weekday and month day")
+
+        if fields[4] == "*":  # set type of cron
+            self.dow = True
+        else:
+            self.dow = False
+
         self.minute = self.parse_field(fields[0], 0, 59)
         self.hour = self.parse_field(fields[1], 0, 23)
         self.day = self.parse_field(fields[2], 1, 31)
@@ -67,9 +77,71 @@ class CronDate:
     def parse_date(self, field: int) -> int:
         return 1 << field
 
-    def next_date(self, cron: CronSpec) -> datetime:
-        date_out = self.date
-        year = date_out.year
-        # find next year
+    def count_zeroes(self, x: int) -> int:
+        # use 2s complement to get the index of least significant bit
+        return (x & -x).bit_length() - 1
 
-        return date_out
+    def next_index(self, schedule: int, today: int) -> Tuple[int, bool]:
+        if schedule == 0:
+            # return None, False
+            raise ValueError("The cron schedule is 0")
+        k = self.count_zeroes(today)
+        lower_mask = (1 << k) - 1
+        future_mask = schedule & ~lower_mask
+
+        if future_mask != 0:
+            # some day exists
+            return self.count_zeroes(future_mask), False
+        return self.count_zeroes(schedule), True  # overflow
+
+    def find_nearest(self, cron: CronSpec, today: datetime):
+        # cron is dow or dom
+        # cron type
+        cron_type = cron.dow
+        dt = today
+        dt = dt.replace(second=0, microsecond=0)
+
+        # find month
+        month_now = today.month
+        mask = self.parse_date(month_now)
+        count, overflow = self.next_index(cron.month, mask)
+        if overflow:
+            dt = dt.replace(year=dt.year+1)
+        dt = dt.replace(month=count)
+
+        if cron_type:  # Day of week to be used
+            # find_weekday
+            weekday_now = today.weekday()
+            mask = self.parse_date(weekday_now)
+            count, overflow = self.next_index(cron.weekday, mask)
+            # count contains number of days to go forward. if overflow + 7
+            delta = count - weekday_now
+            if overflow:
+                delta += 7
+            dt = dt + timedelta(days=delta)
+        else:
+            # find day
+            day_now = today.day
+            mask = self.parse_date(day_now)
+            count, overflow = self.next_index(cron.day, mask)
+            if overflow:
+                month_now += 1
+                dt = dt.replace(month=dt.month+1)
+            dt = dt.replace(day=count)
+
+        # find hour
+        hour_now = today.day
+        mask = self.parse_date(hour_now)
+        count, overflow = self.next_index(cron.hour, mask)
+        if overflow:
+            dt += timedelta(days=1)
+        dt = dt.replace(hour=count)
+
+        # find minute
+        minute_now = today.minute
+        mask = self.parse_date(minute_now)
+        count, overflow = self.next_index(cron.minute, mask)
+        if overflow:
+            dt += timedelta(hours=1)
+        dt = dt.replace(minute=count)
+        return dt
