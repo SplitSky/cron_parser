@@ -62,7 +62,6 @@ class CronSpec:
 
 
 class CronDate:
-
     __slots__ = ("minute", "hour", "day", "month", "weekday", "date")
 
     def __init__(self, today: datetime):
@@ -102,45 +101,34 @@ class CronDate:
         dt = dt.replace(second=0, microsecond=0)
 
         # find month
-        month_now = today.month
-        mask = self.parse_date(month_now)
-        count, overflow = self.next_index(cron.month, mask)
+        count, overflow = self.next_index(cron.month, self.month)
         if overflow:
             dt = dt.replace(year=dt.year+1)
         dt = dt.replace(month=count)
 
         if cron_type:  # Day of week to be used
             # find_weekday
-            weekday_now = today.weekday()
-            mask = self.parse_date(weekday_now)
-            count, overflow = self.next_index(cron.weekday, mask)
+            count, overflow = self.next_index(cron.weekday, self.weekday)
             # count contains number of days to go forward. if overflow + 7
-            delta = count - weekday_now
+            delta = count - self.date.weekday()
             if overflow:
                 delta += 7
             dt = dt + timedelta(days=delta)
         else:
             # find day
-            day_now = today.day
-            mask = self.parse_date(day_now)
-            count, overflow = self.next_index(cron.day, mask)
+            count, overflow = self.next_index(cron.day, self.day)
             if overflow:
-                month_now += 1
                 dt = dt.replace(month=dt.month+1)
             dt = dt.replace(day=count)
 
         # find hour
-        hour_now = today.day
-        mask = self.parse_date(hour_now)
-        count, overflow = self.next_index(cron.hour, mask)
+        count, overflow = self.next_index(cron.hour, self.hour)
         if overflow:
             dt += timedelta(days=1)
         dt = dt.replace(hour=count)
 
         # find minute
-        minute_now = today.minute
-        mask = self.parse_date(minute_now)
-        count, overflow = self.next_index(cron.minute, mask)
+        count, overflow = self.next_index(cron.minute, self.minute)
         if overflow:
             dt += timedelta(hours=1)
         dt = dt.replace(minute=count)

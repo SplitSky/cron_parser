@@ -1,7 +1,7 @@
 from datetime import datetime
 import pytest
 
-from cron import CronSpec   # adjust import path if needed
+from cron import CronDate, CronSpec   # adjust import path if needed
 
 
 def test_1():
@@ -109,7 +109,7 @@ def test_10():
 def test_11():
     cron = CronSpec("0 0 * * 0")  # Sunday
     assert cron.matches(datetime(2026, 2, 8, 0, 0))   # Sunday
-    # assert not cron.matches(datetime(2026, 1, 5, 0, 0))  # Monday
+    assert not cron.matches(datetime(2026, 1, 5, 0, 0))  # Monday
 
 
 @pytest.mark.parametrize(
@@ -127,4 +127,8 @@ def test_invalid(expr):
         CronSpec(expr)
 
 
-# def test_next_date()
+def test_next_date():
+    cron = CronSpec("0 0 * * 0")  # Sunday
+    date = datetime(year=2026, month=1, day=1, hour=12, minute=1)
+    cron_date = CronDate(date)
+    print(cron_date.find_nearest(cron, date))
