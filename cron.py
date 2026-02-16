@@ -73,8 +73,16 @@ class CronDate:
         self.weekday = self.parse_date(int(today.weekday()))
         self.date = today
 
+        print(self.date)
+        items = [self.minute, self.hour, self.day, self.month, self.weekday]
+        for item in items:
+            self.fun_print(item)
+
     def parse_date(self, field: int) -> int:
         return 1 << field
+
+    def fun_print(self, number):
+        print(f"bin = {bin(number)}, zeroes = {self.count_zeroes(number)}")
 
     def count_zeroes(self, x: int) -> int:
         # use 2s complement to get the index of least significant bit

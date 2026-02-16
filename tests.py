@@ -128,7 +128,16 @@ def test_invalid(expr):
 
 
 def test_next_date():
-    cron = CronSpec("0 0 * * 0")  # Sunday
-    date = datetime(year=2026, month=1, day=1, hour=12, minute=1)
+    cron = CronSpec("0 12 * * *")  # Sunday
+    # date = datetime(year=2026, month=1, day=1, hour=12, minute=15)
+    date = datetime.today()
+    print(f"now = {date}")
     cron_date = CronDate(date)
-    print(cron_date.find_nearest(cron, date))
+    next_date = datetime(year=2026, month=2, day=17, hour=12, minute=0)
+    cron_date = cron_date.find_nearest(cron, date)
+    print(f"should be = {next_date}")
+    print(f"is = {cron_date}")
+    # assert cron_date == next_date
+
+
+test_next_date()
