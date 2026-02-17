@@ -1,5 +1,24 @@
-from datetime import datetime, timedelta
-from typing import Iterable, Tuple, Union, Optional
+from datetime import date, datetime, timedelta
+from typing import Tuple
+
+
+class DateMask:
+    __slots__ = ("minute", "hour", "day", "month", "weekday", "date")
+
+    def __init__(self, date_in: datetime):
+        self.minute = 1 << date_in.minute
+        self.hour = 1 << date_in.hour
+        self.day = 1 << date_in.day
+        self.month = 1 << date_in.month
+        self.weekday = 1 << date_in.weekday()
+        self.date = date_in
+
+    def refresh(self):
+        self.minute = 1 << self.minute
+        self.hour = 1 << self.hour
+        self.day = 1 << self.day
+        self.month = 1 << self.month
+        self.weekday = 1 << self.weekday()
 
 
 class CronSpec:
@@ -35,6 +54,7 @@ class CronSpec:
         return bool((self.minute >> dt.minute) & 1 and (self.hour >> dt.hour) & 1 and (self.day >> dt.day) & 1 and (self.month >> dt.month) & 1 and (self.weekday >> cron_weekday) & 1)
 
     def parse_field(self, field: str, min: int, max: int) -> int:
+        # doesn't handle OR logic. Just raises exception on init
         mask = 0
         for part in field.split(","):
             if part == "*":
@@ -63,119 +83,12 @@ class CronSpec:
 
         return mask
 
-
-class CronDate:
-    __slots__ = ("minute", "hour", "day", "month", "weekday", "date")
-
-    def __init__(self, today: datetime):
-        # set details given the date
-        self.date = today
-        self.date = self.date.replace(second=0, microsecond=0)
-        self.refresh_masks()
-
-        print(self.date)
-        items = [self.minute, self.hour, self.day,
-                 self.month, self.weekday]
-        names = ["minutes", "hours", "days", "months", "weekday"]
-        for name, item in zip(names, items):
-            self.fun_print(item, name)
-
-    def refresh_masks(self):
-        self.minute = self.parse_date(int(self.date.minute))
-        self.hour = self.parse_date(int(self.date.hour))
-        self.day = self.parse_date(int(self.date.day))
-        self.month = self.parse_date(int(self.date.month))
-        self.weekday = self.parse_date(int(self.date.weekday()))
-
-    def parse_date(self, field: int) -> int:
-        return 1 << field
-
-    def fun_print(self, number: int, name: str):
-        print(f"name={name}, bin = {bin(number)}, zeroes = {
-              self.count_zeroes(number)}")
-
-    def count_zeroes(self, x: int) -> int:
-        # use 2s complement to get the index of least significant bit
+    def count_zeroes(self, x: int):
         return (x & -x).bit_length() - 1
 
-    def next_index(self, schedule: int, today: int) -> Tuple[int, bool]:
+    def find_next_helper(self, schedule: int, target: int) -> Tuple[int, bool]:
+        # this helper function takes in a schedule as bit mask and returns the index of the next available target
         if schedule == 0:
-            # return None, False
-            raise ValueError("The cron schedule is 0")
-        k = self.count_zeroes(today)
+            raise ValueError("Schedule empty")
+        k = self.count_zeroes(target)
         lower_mask = (1 << k) - 1
-        future_mask = schedule & ~lower_mask
-
-        if future_mask != 0:
-            # some day exists
-            return self.count_zeroes(future_mask), False
-        return self.count_zeroes(schedule), True  # overflow
-
-    def find_nearest(self, cron: CronSpec):
-        # cron is dow or dom
-        # cron type
-        cron_type = cron.dow
-        dt = self.date
-
-        while True:
-            # find month
-            count, overflow = self.next_index(
-                cron.month, self.parse_date(dt.month))
-            if overflow:
-                dt = dt.replace(year=dt.year+1)
-                dt = dt.replace(month=0, day=0, hour=0,
-                                minute=0, second=0, microsecond=0)
-            dt = dt.replace(month=count)
-            print(f"first={dt}")
-
-            while True:
-                # DOW
-                if cron_type:  # Day of week to be used
-                    print(f"week check={dt}")
-                    # find_weekday
-                    count, overflow = self.next_index(
-                        cron.weekday, self.parse_date(dt.weekday()))
-                    # count contains number of days to go forward. if overflow + 7
-                    delta = count - self.date.weekday()
-                    if overflow:
-                        delta += 7 - dt.weekday()
-                        dt = dt + timedelta(days=delta)
-                        break
-                    dt = dt + timedelta(days=delta)
-                    # back to find month
-                else:
-                    # find day
-                    print(f"day check={dt}")
-                    count, overflow = self.next_index(
-                        cron.day, self.parse_date(dt.day))
-                    if overflow:
-                        dt = dt.replace(month=dt.month+1)
-                        dt = dt.replace(day=0, hour=0, minute=0,
-                                        second=0, microsecond=0)
-                        break  # return to check month
-                    dt = dt.replace(day=count)
-                    # back to find month
-                # DOW end
-
-                while True:
-                    # find hour
-                    print(f"hour check={dt}")
-                    count, overflow = self.next_index(
-                        cron.hour, self.parse_date(dt.hour))
-                    if overflow:
-                        dt += timedelta(days=1)  # see if next day also matches
-                        # back to DOW
-                        break
-                    dt = dt.replace(hour=count)
-
-                    # find minute
-
-                    print(f"minute check={dt}")
-                    count, overflow = self.next_index(
-                        cron.minute, self.parse_date(dt.minute))
-                    if overflow:
-                        dt += timedelta(hours=1)
-                        # back to hour
-                    else:
-                        dt = dt.replace(minute=count)
-                        return dt
