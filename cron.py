@@ -72,6 +72,7 @@ class CronDate:
         self.month = self.parse_date(int(today.month))
         self.weekday = self.parse_date(int(today.weekday()))
         self.date = today
+        self.date = self.date.replace(second=0, microsecond=0)
 
         print(self.date)
         items = [self.minute, self.hour, self.day, self.month, self.weekday]
@@ -101,43 +102,62 @@ class CronDate:
             return self.count_zeroes(future_mask), False
         return self.count_zeroes(schedule), True  # overflow
 
-    def find_nearest(self, cron: CronSpec, today: datetime):
+    def find_nearest(self, cron: CronSpec):
         # cron is dow or dom
         # cron type
         cron_type = cron.dow
-        dt = today
-        dt = dt.replace(second=0, microsecond=0)
-
-        # find month
-        count, overflow = self.next_index(cron.month, self.month)
-        if overflow:
-            dt = dt.replace(year=dt.year+1)
-        dt = dt.replace(month=count)
-
-        if cron_type:  # Day of week to be used
-            # find_weekday
-            count, overflow = self.next_index(cron.weekday, self.weekday)
-            # count contains number of days to go forward. if overflow + 7
-            delta = count - self.date.weekday()
+        i = 0
+        keep_going = True
+        dt = self.date
+        while keep_going:
+            i += 1
+            # find month
+            count, overflow = self.next_index(
+                cron.month, self.parse_date(dt.month))
             if overflow:
-                delta += 7
-            dt = dt + timedelta(days=delta)
-        else:
-            # find day
-            count, overflow = self.next_index(cron.day, self.day)
+                dt = dt.replace(year=dt.year+1)
+                dt = dt.replace(month=0, day=0, hour=0,
+                                minute=0, second=0, microsecond=0)
+            dt = dt.replace(month=count)
+
+            if cron_type:  # Day of week to be used
+                # find_weekday
+                count, overflow = self.next_index(
+                    cron.weekday, self.parse_date(dt.weekday()))
+                # count contains number of days to go forward. if overflow + 7
+                delta = count - self.date.weekday()
+                if overflow:
+                    delta += 7
+                dt = dt + timedelta(days=delta)
+            else:
+                # find day
+                count, overflow = self.next_index(
+                    cron.day, self.parse_date(dt.day))
+                if overflow:
+                    dt = dt.replace(month=dt.month+1)
+                    dt = dt.replace(day=0, hour=0, minute=0,
+                                    second=0, microsecond=0)
+                dt = dt.replace(day=count)
+
+            # find hour
+            count, overflow = self.next_index(
+                cron.hour, self.parse_date(dt.hour))
             if overflow:
-                dt = dt.replace(month=dt.month+1)
-            dt = dt.replace(day=count)
+                dt += timedelta(days=1)
+            dt = dt.replace(hour=count)
 
-        # find hour
-        count, overflow = self.next_index(cron.hour, self.hour)
-        if overflow:
-            dt += timedelta(days=1)
-        dt = dt.replace(hour=count)
+            # find minute
+            count, overflow = self.next_index(
+                cron.minute, self.parse_date(dt.minute))
+            if overflow:
+                dt += timedelta(hours=1)
+            dt = dt.replace(minute=count)
 
-        # find minute
-        count, overflow = self.next_index(cron.minute, self.minute)
-        if overflow:
-            dt += timedelta(hours=1)
-        dt = dt.replace(minute=count)
+            if i == 10:
+                raise ValueError("Something is wrong")
+
+            # check cron matches
+            if cron.matches(dt):
+                keep_going = False
+
         return dt

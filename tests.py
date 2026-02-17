@@ -134,7 +134,7 @@ def test_next_date():
     print(f"now = {date}")
     cron_date = CronDate(date)
     next_date = datetime(year=2026, month=2, day=17, hour=12, minute=0)
-    cron_date = cron_date.find_nearest(cron, date)
+    cron_date = cron_date.find_nearest(cron)
     print(f"should be = {next_date}")
     print(f"is = {cron_date}")
     # assert cron_date == next_date
