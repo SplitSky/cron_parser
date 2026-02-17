@@ -17,8 +17,11 @@ class CronSpec:
 
         if fields[4] == "*":  # set type of cron
             self.dow = True
-        else:
+        elif fields[2] == "*":
             self.dow = False
+        else:
+            raise ValueError(
+                "Incorrect cron. Day and week field can't both be restricted")
 
         self.minute = self.parse_field(fields[0], 0, 59)
         self.hour = self.parse_field(fields[1], 0, 23)
@@ -66,24 +69,30 @@ class CronDate:
 
     def __init__(self, today: datetime):
         # set details given the date
-        self.minute = self.parse_date(int(today.minute))
-        self.hour = self.parse_date(int(today.hour))
-        self.day = self.parse_date(int(today.day))
-        self.month = self.parse_date(int(today.month))
-        self.weekday = self.parse_date(int(today.weekday()))
         self.date = today
         self.date = self.date.replace(second=0, microsecond=0)
+        self.refresh_masks()
 
         print(self.date)
-        items = [self.minute, self.hour, self.day, self.month, self.weekday]
-        for item in items:
-            self.fun_print(item)
+        items = [self.minute, self.hour, self.day,
+                 self.month, self.weekday]
+        names = ["minutes", "hours", "days", "months", "weekday"]
+        for name, item in zip(names, items):
+            self.fun_print(item, name)
+
+    def refresh_masks(self):
+        self.minute = self.parse_date(int(self.date.minute))
+        self.hour = self.parse_date(int(self.date.hour))
+        self.day = self.parse_date(int(self.date.day))
+        self.month = self.parse_date(int(self.date.month))
+        self.weekday = self.parse_date(int(self.date.weekday()))
 
     def parse_date(self, field: int) -> int:
         return 1 << field
 
-    def fun_print(self, number):
-        print(f"bin = {bin(number)}, zeroes = {self.count_zeroes(number)}")
+    def fun_print(self, number: int, name: str):
+        print(f"name={name}, bin = {bin(number)}, zeroes = {
+              self.count_zeroes(number)}")
 
     def count_zeroes(self, x: int) -> int:
         # use 2s complement to get the index of least significant bit
@@ -106,11 +115,9 @@ class CronDate:
         # cron is dow or dom
         # cron type
         cron_type = cron.dow
-        i = 0
-        keep_going = True
         dt = self.date
-        while keep_going:
-            i += 1
+
+        while True:
             # find month
             count, overflow = self.next_index(
                 cron.month, self.parse_date(dt.month))
@@ -119,45 +126,56 @@ class CronDate:
                 dt = dt.replace(month=0, day=0, hour=0,
                                 minute=0, second=0, microsecond=0)
             dt = dt.replace(month=count)
+            print(f"first={dt}")
 
-            if cron_type:  # Day of week to be used
-                # find_weekday
-                count, overflow = self.next_index(
-                    cron.weekday, self.parse_date(dt.weekday()))
-                # count contains number of days to go forward. if overflow + 7
-                delta = count - self.date.weekday()
-                if overflow:
-                    delta += 7
-                dt = dt + timedelta(days=delta)
-            else:
-                # find day
-                count, overflow = self.next_index(
-                    cron.day, self.parse_date(dt.day))
-                if overflow:
-                    dt = dt.replace(month=dt.month+1)
-                    dt = dt.replace(day=0, hour=0, minute=0,
-                                    second=0, microsecond=0)
-                dt = dt.replace(day=count)
+            while True:
+                # DOW
+                if cron_type:  # Day of week to be used
+                    print(f"week check={dt}")
+                    # find_weekday
+                    count, overflow = self.next_index(
+                        cron.weekday, self.parse_date(dt.weekday()))
+                    # count contains number of days to go forward. if overflow + 7
+                    delta = count - self.date.weekday()
+                    if overflow:
+                        delta += 7 - dt.weekday()
+                        dt = dt + timedelta(days=delta)
+                        break
+                    dt = dt + timedelta(days=delta)
+                    # back to find month
+                else:
+                    # find day
+                    print(f"day check={dt}")
+                    count, overflow = self.next_index(
+                        cron.day, self.parse_date(dt.day))
+                    if overflow:
+                        dt = dt.replace(month=dt.month+1)
+                        dt = dt.replace(day=0, hour=0, minute=0,
+                                        second=0, microsecond=0)
+                        break  # return to check month
+                    dt = dt.replace(day=count)
+                    # back to find month
+                # DOW end
 
-            # find hour
-            count, overflow = self.next_index(
-                cron.hour, self.parse_date(dt.hour))
-            if overflow:
-                dt += timedelta(days=1)
-            dt = dt.replace(hour=count)
+                while True:
+                    # find hour
+                    print(f"hour check={dt}")
+                    count, overflow = self.next_index(
+                        cron.hour, self.parse_date(dt.hour))
+                    if overflow:
+                        dt += timedelta(days=1)  # see if next day also matches
+                        # back to DOW
+                        break
+                    dt = dt.replace(hour=count)
 
-            # find minute
-            count, overflow = self.next_index(
-                cron.minute, self.parse_date(dt.minute))
-            if overflow:
-                dt += timedelta(hours=1)
-            dt = dt.replace(minute=count)
+                    # find minute
 
-            if i == 10:
-                raise ValueError("Something is wrong")
-
-            # check cron matches
-            if cron.matches(dt):
-                keep_going = False
-
-        return dt
+                    print(f"minute check={dt}")
+                    count, overflow = self.next_index(
+                        cron.minute, self.parse_date(dt.minute))
+                    if overflow:
+                        dt += timedelta(hours=1)
+                        # back to hour
+                    else:
+                        dt = dt.replace(minute=count)
+                        return dt
