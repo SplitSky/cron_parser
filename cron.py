@@ -1,5 +1,5 @@
 from datetime import date, datetime, timedelta
-from typing import Tuple
+from typing import Tuple, Callable, Dict, Any
 
 
 class DateMask:
@@ -10,15 +10,16 @@ class DateMask:
         self.hour = 1 << date_in.hour
         self.day = 1 << date_in.day
         self.month = 1 << date_in.month
-        self.weekday = 1 << date_in.weekday()
+        self.weekday = 1 << ((date_in.weekday() + 1) % 7)
         self.date = date_in
 
-    def refresh(self):
-        self.minute = 1 << self.minute
-        self.hour = 1 << self.hour
-        self.day = 1 << self.day
-        self.month = 1 << self.month
-        self.weekday = 1 << self.weekday()
+    def refresh(self, date_in):
+        self.minute = 1 << date_in.minute
+        self.hour = 1 << date_in.hour
+        self.day = 1 << date_in.day
+        self.month = 1 << date_in.month
+        self.weekday = 1 << ((date_in.weekday() + 1) % 7)
+        self.date = date_in
 
 
 class CronSpec:
@@ -83,12 +84,94 @@ class CronSpec:
 
         return mask
 
-    def count_zeroes(self, x: int):
-        return (x & -x).bit_length() - 1
 
-    def find_next_helper(self, schedule: int, target: int) -> Tuple[int, bool]:
-        # this helper function takes in a schedule as bit mask and returns the index of the next available target
-        if schedule == 0:
-            raise ValueError("Schedule empty")
-        k = self.count_zeroes(target)
-        lower_mask = (1 << k) - 1
+def count_zeroes(x: int):
+    return (x & -x).bit_length() - 1
+
+
+def is_leap_year(year: int) -> bool:
+    if year % 400 == 0:
+        return True
+    if year % 100 == 0:
+        return False
+    return year % 4 == 0
+
+
+def max_days_in_month(year, month) -> int:
+    if month == 2:
+        return 29 if is_leap_year(year) else 28
+    if month in (4, 6, 9, 11):
+        return 30
+    return 31
+
+
+def adjust_days_range(date: datetime, schedule: int) -> int:
+    # TODO: check indexes are correct
+    # fixes the schedule to make sure not allowed
+    # day values are excluded from schedule
+    md = max_days_in_month(date.year, date.month)
+    valid = ((1 << md) - 1) << 1
+    return schedule & valid
+
+
+def find_next_helper(schedule: int, target: int) -> Tuple[int, bool]:
+    # this helper function takes in a schedule as bit mask and
+    # returns the index of the next available target
+    if schedule == 0:
+        raise ValueError("Schedule empty")
+    k = count_zeroes(target)
+    lower_mask = (1 << k) - 1
+    future_mask = schedule & ~lower_mask
+    if future_mask != 0:
+        return count_zeroes(future_mask), False
+    return count_zeroes(schedule), True  # overflow return nearest
+
+
+def find_next_date(cron: CronSpec, date_start: datetime):
+    # returns a date for the next cron scheduled date
+    # convert date into mask
+    a = 1
+
+
+def find_month(cron: CronSpec, target: DateMask) -> DateMask:
+    count, overflow = find_next_helper(cron.month, target.month)
+    dt = target.date
+    if overflow:
+        # increment year
+        dt = target.date.replace(year=target.date.year + 1)
+
+    if dt.month == 12:
+        # edge case for overflow
+        # reset back to January
+        dt = target.date.replace(year=target.date.year + 1, month=1)
+    else:
+        dt = dt.replace(month=dt.month+1)
+
+    return_mask = target
+    return_mask.refresh(dt)
+    return return_mask
+
+
+def find_day(cron: CronSpec, target: DateMask):
+    dt = target.date
+    if cron.dow:
+        # only day of the week
+        count, overflow = find_next_helper(cron.weekday, target.weekday)
+        if overflow:
+            # increment the date and see if it overflows the month
+            delta = 6 - dt.day + count  # TODO: Verify the index works
+            new_date = dt + timedelta(days=delta)
+            # check if next month
+            if new_date.month > dt.month:
+                # increment
+
+    else:
+        # only day of the month
+
+
+def find_hour(cron: CronSpec, hour: int, dt: datetime):
+    a = 1
+
+
+def find_minute(cron: CronSpec, minute: int, dt: datetime):
+    a = 1
