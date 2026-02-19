@@ -2,6 +2,7 @@ from datetime import datetime
 import pytest
 
 from cron_parser import CronExp   # adjust import path if needed
+from date_util import *
 
 
 def test_1():
@@ -129,4 +130,12 @@ def test_invalid(expr):
 
 def test_12():
     # text next date features
-    assert True == True
+    date_now = datetime(year=2026, month=2, day=19, hour=9, minute=0)
+    date_correct = datetime(year=2026, month=2, day=19, hour=12, minute=0)
+    cron = CronExp("0 12 * * *")
+    date_predicted = next_date(date_now, cron)
+    print(date_predicted)
+    print(date_now)
+
+
+test_12()
