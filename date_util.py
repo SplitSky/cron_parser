@@ -4,16 +4,25 @@ from typing import Tuple, dataclass_transform
 
 
 def count_zeroes(x: int):
-    return (x & -x).bit_length() - 1
+    temp = (x & -x).bit_length() - 1
+    if temp < 0:
+        print(f"found it: {temp}")
+        return 0
+    else:
+        return temp
 
 
-def next_index(schedule: int, today: int, dow: bool) -> Tuple[int, bool]:
+def conv_to_mask(unit: int) -> int:
+    return 1 << unit
+
+
+def next_index(schedule: int, today: int) -> Tuple[int, bool]:
     if dow:
         today = (today + 1) % 7
     if schedule == 0:
         # return None, False
         raise ValueError("The cron schedule is 0")
-    k = count_zeroes(today)
+    k = count_zeroes(conv_to_mask(today))
     lower_mask = (1 << k) - 1
     future_mask = schedule & ~lower_mask
 
@@ -24,6 +33,7 @@ def next_index(schedule: int, today: int, dow: bool) -> Tuple[int, bool]:
 
 
 def increment_month(dt: datetime) -> datetime:
+    print("increment month")
     # increment the month by 1
     dt_out = dt + timedelta(days=31)
     dt_out = dt_out.replace(day=dt.day)
@@ -31,6 +41,7 @@ def increment_month(dt: datetime) -> datetime:
 
 
 def find_month(dt: datetime, cron_mask: int) -> datetime:
+    print("find month")
     count, overflow = next_index(cron_mask, dt.month, False)
     if overflow:
         return dt.replace(year=dt.year + 1, month=count)
@@ -38,6 +49,7 @@ def find_month(dt: datetime, cron_mask: int) -> datetime:
 
 
 def find_day(dt: datetime, cron: CronExp) -> datetime:
+    print("find day")
     # if dow restricted
     # find next date using dom
     count, overflow = next_index(cron.dom, dt.day, False)
@@ -66,6 +78,7 @@ def find_day(dt: datetime, cron: CronExp) -> datetime:
 
 
 def find_hour(dt: datetime, cron: CronExp) -> datetime:
+    print("find hour")
     dt_out = dt
     count, overflow = next_index(cron.hour, dt.hour, False)
     if overflow:
@@ -75,8 +88,11 @@ def find_hour(dt: datetime, cron: CronExp) -> datetime:
 
 
 def find_minute(dt: datetime, cron: CronExp) -> datetime:
+    print("find minute")
     dt_out = dt
+    print(f"cron_minute={cron.minute}, minute={dt.minute}")
     count, overflow = next_index(cron.minute, dt.minute, False)
+    print(f"count={count}, overflow={overflow}")
     if overflow:
         dt_out += timedelta(hours=1)
     dt_out += timedelta(minutes=count)
@@ -84,14 +100,23 @@ def find_minute(dt: datetime, cron: CronExp) -> datetime:
 
 
 def next_date(today: datetime, cron: CronExp) -> datetime:
-    MAX_ITER = 100
+    print("next date")
+    print(f"intial date = {today}")
+    MAX_ITER = 1
     for i in range(0, MAX_ITER):
         dt = find_month(today, cron.month)
+        print(f"DATE = {dt}")
         dt = find_day(dt, cron)
+        print(f"DATE = {dt}")
         dt = find_hour(dt, cron)
+        print(f"DATE = {dt}")
         dt = find_minute(dt, cron)
+        print(f"DATE = {dt}")
 
         if cron.matches(dt):
+            print("worked")
             return dt
         else:
             print(f"Iteration number: {i}")
+
+    raise ValueError("couldn't find cron")

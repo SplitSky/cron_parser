@@ -25,7 +25,7 @@ class CronExp:
         self.hour = self.parse_field(fields[1], 0, 23)
         self.dom = self.parse_field(fields[2], 1, 31)
         self.month = self.parse_field(fields[3], 1, 12)
-        self.dow = self.parse_field(fields[4], 0, 6)
+        self.dow = self.parse_field(fields[4], 0, 6)  # 0=Sun
 
     def parse_field(self, field: str, min: int, max: int) -> int:
         mask = 0

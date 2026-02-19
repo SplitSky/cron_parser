@@ -130,7 +130,7 @@ def test_invalid(expr):
 
 def test_12():
     # text next date features
-    date_now = datetime(year=2026, month=2, day=19, hour=9, minute=0)
+    date_now = datetime(year=2026, month=2, day=19, hour=6, minute=1)
     date_correct = datetime(year=2026, month=2, day=19, hour=12, minute=0)
     cron = CronExp("0 12 * * *")
     date_predicted = next_date(date_now, cron)
