@@ -1,4 +1,5 @@
 from datetime import datetime
+from types import LambdaType
 from typing import Set
 
 # special cron characters substitutions
@@ -27,6 +28,14 @@ class CronSpec:
 
         if cron_expr in SPECIALS.keys(): # substitution for specials
             parts = SPECIALS[cron_expr].split()
+
+        self.dom_star = False
+        if parts[2] == "*":
+            self.dom_star = True
+
+        self.dow_star = False
+        if parts[4] == "*":
+            self.dow_star = True
 
         self.min = set(self.parse_expression(parts[0], 0, 59))
         self.hr = set(self.parse_expression(parts[1], 0, 23))
@@ -64,6 +73,10 @@ class CronSpec:
             # simple range
             parts = expr.split("-")
             return_set.update(set(range(int(parts[0]), int(parts[1])+1, 1)))
+        
+        # if single number
+        if expr.isdigit():
+            return_set.add(int(expr))
 
         return return_set
 

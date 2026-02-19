@@ -39,11 +39,21 @@ def test_step_with_start():
     assert {15, 30, 45} == cron.min
 
 def test_find_next():
-    overflow, count = find_next(4, {1,2,7,8}, 1, 31)
-    print(f"overflow={overflow}, count={count}")
-    
-    overflow, count = find_next(9, {1,2,7,8}, 1, 31)
-    print(f"overflow={overflow}, count={count}")
+    overflow, count = find_next(4, {1,2,7,8})
+    assert overflow == False
+    assert count == 7
+    overflow, count = find_next(9, {1,2,7,8})
+    assert overflow == True
+    assert count == 1
 
-test_find_next()
+def test_find_month():
+    today = datetime(year=2020, month=1, day=1, hour=12, minute=0)
+    cron = CronSpec("* * * 3 *")
+    dt = find_month(today, cron)
+    print(cron.month)
+    print(today)
+    print(dt)
+
+test_find_month()
+
 
