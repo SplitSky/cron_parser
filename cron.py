@@ -18,6 +18,7 @@ day: 1 - 31
 month: 1 - 12
 year: 1900 - 9999
 dow: 0 - 6 (6 == Sunday)
+proper cron dow: 0 - 6 (0 == Sunday, 6 == Saturday)
 """
 
 class CronSpec:
@@ -79,5 +80,24 @@ class CronSpec:
             return_set.add(int(expr))
 
         return return_set
+
+    def matches(self, dt: datetime) -> bool:
+        fixed_weekday = (dt.weekday() % 7) - 1
+        if not dt.month in self.month:
+            print("month not found")
+            return False
+        if not dt.hour in self.hr:
+            print("hour not found")
+            return False
+        if not dt.minute in self.min:
+            print("min not found")
+            return False
+
+        if not(dt.day in self.dom or fixed_weekday in self.dow)
+            print("silly")
+            # by De Morgan's law
+            return False
+            
+        return True
 
 

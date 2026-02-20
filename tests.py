@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
+from types import ModuleType
 from typing import assert_never
 from _pytest.config import ConftestImportFailure
 from _pytest.monkeypatch import monkeypatch
@@ -63,26 +64,54 @@ def test_parsing_dom():
     dt_dom = find_dom(today, cron)
     assert dt_dom == correct_date
 
-def test_parsing_dow():
-    cron = CronSpec("0 12 * 7 2")
+def test_parsing_dow_overflow():
+    cron = CronSpec("0 12 31 * 1")
     today = datetime(year=2026, month=2, day=20, hour=12, minute=0)
-    correct_date = datetime(year=2026, month=7, day=7, hour=12, minute=0)
-
+    correct_date = datetime(year=2026, month=2, day=23, hour=12, minute=0)
     dt_dow = find_dow(today, cron)
-    print(dt_dow)
+    assert dt_dow == correct_date
 
-def test_find_day():
-    today = datetime.today()
-    cron = CronSpec("0 12 6 * *")
-    closest_date = datetime(minute=0, hour=12, day=6, month=3, year=2026)
+def test_parsing_dow_not_overflow():
+    # the standard cron uses 0 - sunday. We use 0 - monday
+    cron = CronSpec("0 12 31 * 6")
+    print(cron.min)
+    print(cron.hr)
+    print(cron.dom)
+    print(cron.month)
+    print(cron.dow)
+    today = datetime(year=2026, month=2, day=20, hour=12, minute=0)
+    correct_date = datetime(year=2026, month=2, day=21, hour=12, minute=0)
     dt_dow = find_dow(today, cron)
-    dt_dom = find_dom(today, cron)
-    dt = find_day(today, cron)
-    print(f"dow = {dt_dow}")
-    print(f"dom = {dt_dom}")
-    print(f"dt = {dt}")
-    print(f"correct = {closest_date}")
+    assert dt_dow == correct_date
 
+test_data = [
+    ("* * * * *","2026-01-01T01:00:00"),
+    ("5 4 * * 0","2026-02-22T04:05:00"), 
+    ("0 0,12 1 */2 *", "2026-03-01T00:00:00"),]
 
-# test_find_day()
-test_parsing_dow()
+@pytest.mark.parametrize("cron,date", test_data)
+def test_cron_matches(cron, date):
+    cron = CronSpec(cron)
+    dt = datetime.fromisoformat(date)
+    print(cron.matches(dt))
+    assert cron.matches(dt)
+
+# def test_find_day():
+#     # tests both dow and dom cases and makes sure the correct date is chosen
+#     # picks dow
+#     cron = CronSpec("0 12 31 * 6") # At 12 on day of month 31 and on Sunday
+#     print(cron.min)
+#     print(cron.hr)
+#     print(cron.dom)
+#     print(cron.month)
+#     print(cron.dow)
+#     print("start expressions")
+#     print(f"dow_star={cron.dow_star}")
+#     print(f"dom_star={cron.dom_star}")
+#     today = datetime(year=2026, month=2, day=20, hour=12, minute=0)
+#     correct_date = datetime(year=2026, month=2, day=22, hour=12, minute=0)
+#     dt = find_day(today, cron)
+#     print(dt)
+#     print(correct_date)
+
+test_cron_matches("* * * * *","2026-01-01T01:00:00")

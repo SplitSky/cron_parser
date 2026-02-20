@@ -42,24 +42,32 @@ def find_dom(dt: datetime, cron: CronSpec) -> datetime:
 def find_dow(dt: datetime, cron: CronSpec) -> datetime:
     dt_return = dt
     overflow, count = find_next(dt.weekday(), cron.dow)
+    print(f"overflow = {overflow}")
+    print(f"count = {count}")
     if overflow:
-        delta = 7 - dt.weekday() + count
+        print("overflow branch")
+        delta = 6 - dt.weekday() + count
     else:
+        print("not overflow branch")
         delta = count - dt.weekday()
     dt_return += timedelta(days=delta)
     dt_return = find_month(dt_return, cron) # check for month overflow
     return dt_return
 
 def find_day(dt: datetime, cron: CronSpec) -> datetime:
-    if cron.dow_star and cron.dom_star:
+    if not cron.dow_star and not cron.dom_star:
         # OR logic finding closest
         dow_date = find_dow(dt, cron)
         dom_date = find_dom(dt, cron)
+        print(f"dow_date = {dow_date}")
+        print(f"dom_date = {dom_date}")
         return close_date_helper(dt, [dow_date, dom_date])
     elif cron.dom_star and not cron.dow_star:
         return find_dow(dt, cron)
     else:
+        print(f"dom_date = {find_dom(dt, cron)}")
         return find_dom(dt, cron)
+
 
 def next_date(today: datetime, cron: CronSpec) -> datetime:
     dt = today.replace(second=0, microsecond=0)
@@ -78,6 +86,8 @@ def close_date_helper(today: datetime, dates: List[datetime]) -> datetime:
         if delta < closest:
             chosen_date = date
             closest = delta
+
+    print(f"closest date is = {closest}")
 
     if chosen_date is None:
         raise ValueError("The closest date not found")
