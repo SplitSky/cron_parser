@@ -7,7 +7,7 @@ def find_next(value: int,schedule: Set[int]) -> Tuple[bool, int]:
     # search for the value within the set and return the closest value higher than it
     new_mask = copy.deepcopy(schedule) # has to deep copy
     new_mask.difference_update({x for x in schedule if x < value})
-    print("new mask")
+    print(new_mask)
     print(new_mask)
     # check if a value ahead exists
     if len(new_mask) == 0:

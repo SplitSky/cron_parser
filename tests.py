@@ -71,29 +71,19 @@ def test_parsing_dow_overflow():
     dt_dow = find_dow(today, cron)
     assert dt_dow == correct_date
 
-def test_parsing_dow_not_overflow():
-    # the standard cron uses 0 - sunday. We use 0 - monday
-    cron = CronSpec("0 12 31 * 6")
-    print(cron.min)
-    print(cron.hr)
-    print(cron.dom)
-    print(cron.month)
-    print(cron.dow)
-    today = datetime(year=2026, month=2, day=20, hour=12, minute=0)
-    correct_date = datetime(year=2026, month=2, day=21, hour=12, minute=0)
-    dt_dow = find_dow(today, cron)
-    assert dt_dow == correct_date
-
 test_data = [
     ("* * * * *","2026-01-01T01:00:00"),
     ("5 4 * * 0","2026-02-22T04:05:00"), 
-    ("0 0,12 1 */2 *", "2026-03-01T00:00:00"),]
+    ("0 0,12 1 */2 *", "2026-03-01T00:00:00"),
+    ("0 4 8-14 * *", "2026-03-08T04:00:00"),
+    ("0 0 1,15 * 3", "2026-02-25T00:00:00"),
+    ("5 0 * 8 *", "2026-08-01T00:05:00"),
+    ]
 
 @pytest.mark.parametrize("cron,date", test_data)
 def test_cron_matches(cron, date):
     cron = CronSpec(cron)
     dt = datetime.fromisoformat(date)
-    print(cron.matches(dt))
     assert cron.matches(dt)
 
 # def test_find_day():
@@ -114,4 +104,15 @@ def test_cron_matches(cron, date):
 #     print(dt)
 #     print(correct_date)
 
-test_cron_matches("* * * * *","2026-01-01T01:00:00")
+#def test_parsing_dow_not_overflow():
+#    # the standard cron uses 0 - sunday. We use 0 - monday
+#    cron = CronSpec("0 12 31 * 6")
+#    print(cron.min)
+#    print(cron.hr)
+#    print(cron.dom)
+#    print(cron.month)
+#    print(cron.dow)
+#    today = datetime(year=2026, month=2, day=20, hour=12, minute=0)
+#    correct_date = datetime(year=2026, month=2, day=21, hour=12, minute=0)
+#    dt_dow = find_dow(today, cron)
+#    assert dt_dow == correct_date

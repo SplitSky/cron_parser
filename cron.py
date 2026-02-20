@@ -82,22 +82,17 @@ class CronSpec:
         return return_set
 
     def matches(self, dt: datetime) -> bool:
-        fixed_weekday = (dt.weekday() % 7) - 1
+        fixed_weekday = (dt.weekday() % 7) + 1
+        # the above fixes the convention difference between cron and datetime library
         if not dt.month in self.month:
-            print("month not found")
             return False
         if not dt.hour in self.hr:
-            print("hour not found")
             return False
         if not dt.minute in self.min:
-            print("min not found")
             return False
-
-        if not(dt.day in self.dom or fixed_weekday in self.dow)
-            print("silly")
+        if not(dt.day in self.dom or fixed_weekday in self.dow):
             # by De Morgan's law
             return False
-            
         return True
 
 
