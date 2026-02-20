@@ -82,7 +82,7 @@ class CronSpec:
         return return_set
 
     def matches(self, dt: datetime) -> bool:
-        fixed_weekday = (dt.weekday() % 7) + 1
+        fixed_weekday = (dt.weekday() + 1) % 7
         # the above fixes the convention difference between cron and datetime library
         if not dt.month in self.month:
             return False

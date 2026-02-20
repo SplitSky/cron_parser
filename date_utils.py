@@ -8,7 +8,6 @@ def find_next(value: int,schedule: Set[int]) -> Tuple[bool, int]:
     new_mask = copy.deepcopy(schedule) # has to deep copy
     new_mask.difference_update({x for x in schedule if x < value})
     print(new_mask)
-    print(new_mask)
     # check if a value ahead exists
     if len(new_mask) == 0:
         return True, min(schedule)
@@ -41,15 +40,16 @@ def find_dom(dt: datetime, cron: CronSpec) -> datetime:
 
 def find_dow(dt: datetime, cron: CronSpec) -> datetime:
     dt_return = dt
-    overflow, count = find_next(dt.weekday(), cron.dow)
+    fixed_weekday = (dt.weekday() + 1) % 7
+    overflow, count = find_next(fixed_weekday, cron.dow)
     print(f"overflow = {overflow}")
     print(f"count = {count}")
     if overflow:
         print("overflow branch")
-        delta = 6 - dt.weekday() + count
+        delta = 7 - fixed_weekday + count
     else:
         print("not overflow branch")
-        delta = count - dt.weekday()
+        delta = count - fixed_weekday
     dt_return += timedelta(days=delta)
     dt_return = find_month(dt_return, cron) # check for month overflow
     return dt_return

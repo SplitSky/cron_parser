@@ -69,6 +69,8 @@ def test_parsing_dow_overflow():
     today = datetime(year=2026, month=2, day=20, hour=12, minute=0)
     correct_date = datetime(year=2026, month=2, day=23, hour=12, minute=0)
     dt_dow = find_dow(today, cron)
+    print(dt_dow)
+    print(correct_date)
     assert dt_dow == correct_date
 
 test_data = [
@@ -86,33 +88,32 @@ def test_cron_matches(cron, date):
     dt = datetime.fromisoformat(date)
     assert cron.matches(dt)
 
-# def test_find_day():
-#     # tests both dow and dom cases and makes sure the correct date is chosen
-#     # picks dow
-#     cron = CronSpec("0 12 31 * 6") # At 12 on day of month 31 and on Sunday
-#     print(cron.min)
-#     print(cron.hr)
-#     print(cron.dom)
-#     print(cron.month)
-#     print(cron.dow)
-#     print("start expressions")
-#     print(f"dow_star={cron.dow_star}")
-#     print(f"dom_star={cron.dom_star}")
-#     today = datetime(year=2026, month=2, day=20, hour=12, minute=0)
-#     correct_date = datetime(year=2026, month=2, day=22, hour=12, minute=0)
-#     dt = find_day(today, cron)
-#     print(dt)
-#     print(correct_date)
 
-#def test_parsing_dow_not_overflow():
-#    # the standard cron uses 0 - sunday. We use 0 - monday
-#    cron = CronSpec("0 12 31 * 6")
-#    print(cron.min)
-#    print(cron.hr)
-#    print(cron.dom)
-#    print(cron.month)
-#    print(cron.dow)
-#    today = datetime(year=2026, month=2, day=20, hour=12, minute=0)
-#    correct_date = datetime(year=2026, month=2, day=21, hour=12, minute=0)
-#    dt_dow = find_dow(today, cron)
-#    assert dt_dow == correct_date
+def test_parsing_dow_not_overflow():
+    # the standard cron uses 0 - sunday. We use 0 - monday
+    cron = CronSpec("0 12 31 * 6")
+    print(cron.min)
+    print(cron.hr)
+    print(cron.dom)
+    print(cron.month)
+    print(cron.dow)
+    print("printing from cron done")
+    today = datetime(year=2026, month=2, day=20, hour=12, minute=0)
+    correct_date = datetime(year=2026, month=2, day=21, hour=12, minute=0)
+    dt_dow = find_dow(today, cron)
+    print(f"today = {today}")
+    print(f"correct_Date = {correct_date}")
+    print(f"date found = {dt_dow}")
+    assert dt_dow == correct_date
+
+def test_find_day():
+    cron = CronSpec("0 12 31 * 6")
+    today = datetime(year=2026, month=2, day=20, hour=12, minute=0)
+    dt = find_day(today, cron)
+    correct_date = datetime(year=2026, month=2, day=21, hour=12, minute=0)
+    print(f"dt = {dt}")
+    print(f"today= {today}")
+    print(f"correct_date = {correct_date}")
+    assert correct_date == dt
+
+
