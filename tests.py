@@ -116,4 +116,33 @@ def test_find_day():
     print(f"correct_date = {correct_date}")
     assert correct_date == dt
 
+def test_find_hour():
+    cron = CronSpec("1 1 1 1 1")
+    today = datetime(year=2026, month=2, day=1, hour=0, minute=1)
+    correct_date = datetime(year=2027, month=1, day=1, hour=1, minute=1)
+    dt = find_hour(today, cron)
+    assert dt == correct_date
 
+def test_find_minute():
+    cron = CronSpec("1 1 1 1 1")
+    today = datetime(year=2026, month=2, day=1, hour=0, minute=0)
+    correct_date = datetime(year=2027, month=1, day=1, hour=1, minute=1)
+    dt = find_minute(today, cron)
+    assert dt == correct_date
+
+test_data = [
+    ("* * * * *","2026-02-20T18:30:00"),
+    ("5 4 * * 0","2026-02-22T04:05:00"), 
+    ("0 0,12 1 */2 *", "2026-03-01T00:00:00"),
+    ("0 4 8-14 * *", "2026-03-08T04:00:00"),
+    ("0 0 1,15 * 3", "2026-02-25T00:00:00"),
+    ("5 0 * 8 *", "2026-08-01T00:05:00"),
+    ]
+
+@pytest.mark.parametrize("cron,date", test_data)
+def test_find_next_date(cron, date):
+    today = datetime(year=2026, month=2, day=20, hour=18, minute=30)
+    dt = find_next_schedule(cron, today)
+    correct_date = datetime.fromisoformat(date)
+    assert dt == correct_date
+    
