@@ -28,19 +28,14 @@ def find_month(dt: datetime, cron: CronSpec) -> datetime:
 def find_dom(dt: datetime, cron: CronSpec) -> datetime:
     dt_return = dt
     overflow, count = find_next(dt.day, cron.dom)
-    print(f"overflow = {overflow}")
-    print(f"count = {count}")
     if overflow:
         dt_return = dt_return.replace(month= dt_return.month + 1, day=count) # overflow to next month
         # re-check month
         dt_return = find_month(dt_return, cron)
-        print(f"return 3 = {dt_return}")
     else:
         # by definition of overflow count can't be less than dt.day
         dt_return += timedelta(days=count - dt.day) # move by delta
-        print(f"return 2 = {dt_return}")
         dt_return = find_month(dt_return, cron)
-        print(f"return 3 = {dt_return}")
 
     return dt_return
 
@@ -52,7 +47,7 @@ def find_dow(dt: datetime, cron: CronSpec) -> datetime:
     else:
         delta = count - dt.weekday()
     dt_return += timedelta(days=delta)
-
+    dt_return = find_month(dt_return, cron) # check for month overflow
     return dt_return
 
 def find_day(dt: datetime, cron: CronSpec) -> datetime:
