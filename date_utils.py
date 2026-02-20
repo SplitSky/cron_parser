@@ -1,6 +1,20 @@
 from cron import CronSpec
 from datetime import datetime, timedelta
 from typing import Set, Tuple, List
+import copy
+
+def find_next(value: int,schedule: Set[int]) -> Tuple[bool, int]:
+    # search for the value within the set and return the closest value higher than it
+    new_mask = copy.deepcopy(schedule) # has to deep copy
+    new_mask.difference_update({x for x in schedule if x < value})
+    print("new mask")
+    print(new_mask)
+    # check if a value ahead exists
+    if len(new_mask) == 0:
+        return True, min(schedule)
+    else:
+        # find smallest value from new mask
+        return False, min(new_mask)
 
 def find_month(dt: datetime, cron: CronSpec) -> datetime:
     overflow, count = find_next(dt.month, cron.month)
@@ -14,12 +28,19 @@ def find_month(dt: datetime, cron: CronSpec) -> datetime:
 def find_dom(dt: datetime, cron: CronSpec) -> datetime:
     dt_return = dt
     overflow, count = find_next(dt.day, cron.dom)
+    print(f"overflow = {overflow}")
+    print(f"count = {count}")
     if overflow:
-        dt_return = dt_return.replace(month= dt_return.month + 1, day=1) # overflow to next month
-        dt_return += timedelta(days=count) # push to next available day
+        dt_return = dt_return.replace(month= dt_return.month + 1, day=count) # overflow to next month
+        # re-check month
+        dt_return = find_month(dt_return, cron)
+        print(f"return 3 = {dt_return}")
     else:
         # by definition of overflow count can't be less than dt.day
         dt_return += timedelta(days=count - dt.day) # move by delta
+        print(f"return 2 = {dt_return}")
+        dt_return = find_month(dt_return, cron)
+        print(f"return 3 = {dt_return}")
 
     return dt_return
 
@@ -70,26 +91,23 @@ def close_date_helper(today: datetime, dates: List[datetime]) -> datetime:
 def find_hour(dt: datetime, cron: CronSpec) -> datetime:
     overflow, count = find_next(dt.hour, cron.hr)
     if overflow:
-        return dt + timedelta(hours=23-dt.hour+count)
+        dt_return = dt + timedelta(hours=23-dt.hour+count)
+        dt_return = find_day(dt_return, cron)
     else:
-        return dt + timedelta(hours=count - dt.hour)
+        dt_return = dt + timedelta(hours=count - dt.hour)
+        dt_return = find_day(dt_return, cron)
+
+    return dt_return
 
 def find_minute(dt: datetime, cron: CronSpec) -> datetime:
     overflow, count = find_next(dt.minute, cron.min)
     if overflow:
-        return dt + timedelta(minutes=59 - dt.minute + count)
+        dt_return =  dt + timedelta(minutes=59 - dt.minute + count)
+        dt_return = find_hour(dt_return, cron)
     else:
-        return dt + timedelta(minutes=count + dt.minute)
+        dt_return = dt + timedelta(minutes=count + dt.minute)
+        dt_return = find_hour(dt_return, cron)
 
-def find_next(value: int,schedule: Set[int]) -> Tuple[bool, int]:
-    # search for the value within the set and return the closest value higher than it
-    new_mask = schedule.copy() # has to deep copy
-    new_mask.difference_update({x for x in schedule if x < value})
-    print("new mask")
-    print(new_mask)
-    # check if a value ahead exists
-    if len(new_mask) == 0:
-        return True, min(schedule)
-    else:
-        # find smallest value from new mask
-        return False, min(new_mask)
+    return dt_return
+
+
