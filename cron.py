@@ -1,163 +1,110 @@
-from datetime import datetime, timedelta
-from typing import Iterable, Tuple, Union, Optional
+from datetime import datetime
+from types import LambdaType
+from typing import Set
 
+# special cron characters substitutions
+SPECIALS = {
+        "@yearly": "0 0 1 1 *",
+        "@monthly": "0 0 1 * *",
+        "@weekly": "0 0 * * 0",
+        "@daily": "0 0 * * *",
+        "@hourly": "0 * * * *"
+        }
+
+"""convention for ranges
+minutes: 0 - 59
+hours: 0 - 23
+day: 1 - 31
+month: 1 - 12
+year: 1900 - 9999
+dow: 0 - 6 (6 == Sunday)
+proper cron dow: 0 - 6 (0 == Sunday, 6 == Saturday)
+"""
 
 class CronSpec:
-    __slots__ = ("minute", "hour", "day", "month", "weekday", "dow")
+    def __init__(self, cron_expr: str):
+        parts = cron_expr.split()
+        if len(parts) > 5:
+            raise ValueError("Cron length exceeded")
 
-    def __init__(self, expression: str):
-        fields = expression.split()
-        if len(fields) != 5:
-            raise ValueError(
-                "Cron expressions must have 5 fields. Wrong format")
+        if cron_expr in SPECIALS.keys(): # substitution for specials
+            parts = SPECIALS[cron_expr].split()
 
-        if fields[4] != "*" and fields[2] != "*":
-            raise ValueError(
-                "Cron is incorrect. Contains restruction on weekday and month day")
+        self.dom_star = False
+        if parts[2] == "*":
+            self.dom_star = True
 
-        if fields[4] == "*":  # set type of cron
-            self.dow = True
-        else:
-            self.dow = False
+        self.dow_star = False
+        if parts[4] == "*":
+            self.dow_star = True
 
-        self.minute = self.parse_field(fields[0], 0, 59)
-        self.hour = self.parse_field(fields[1], 0, 23)
-        self.day = self.parse_field(fields[2], 1, 31)
-        self.month = self.parse_field(fields[3], 1, 12)
-        self.weekday = self.parse_field(fields[4], 0, 6)
+        self.min = set(self.parse_expression(parts[0], 0, 59))
+        self.hr = set(self.parse_expression(parts[1], 0, 23))
+        self.dom = set(self.parse_expression(parts[2], 1, 31))
+        self.month = set(self.parse_expression(parts[3], 1, 12))
+        self.dow = set(self.parse_expression(parts[4], 0, 6))
+
+    def parse_expression(self, expr: str, min: int, max: int) -> Set[int]:
+        # specials , - * /
+        return_set = set()
+
+        if expr == "*":
+            return set(range(min, max+1, 1))
+
+        if "," in expr:
+            # list of allowed values may include ranges
+            parts = expr.split(",")
+            for part in parts:
+                if "-" in part:
+                    temp = part.split("-")
+                    return_set.update(set(range(int(temp[0]), int(temp[1])+1,1)))
+                else:
+                    return_set.add(int(part))
+        
+        if "/" in expr:
+            parts = expr.split("/")
+            if "*/" in expr:
+                step = int(expr.split("/")[1])
+                return_set.update(set(range(min, max+1, step)))
+            else:
+                start, step = expr.split("/")
+                return_set.update(set(range(int(start), max, int(step))))
+
+        if "-" in expr and "," not in expr:
+            # simple range
+            parts = expr.split("-")
+            return_set.update(set(range(int(parts[0]), int(parts[1])+1, 1)))
+        
+        # if single number
+        if expr.isdigit():
+            return_set.add(int(expr))
+
+        return return_set
 
     def matches(self, dt: datetime) -> bool:
-        # lil bit of modulus to fix the range issue
-        cron_weekday = (dt.weekday() + 1) % 7
-        return bool((self.minute >> dt.minute) & 1 and (self.hour >> dt.hour) & 1 and (self.day >> dt.day) & 1 and (self.month >> dt.month) & 1 and (self.weekday >> cron_weekday) & 1)
-
-    def parse_field(self, field: str, min: int, max: int) -> int:
-        mask = 0
-        for part in field.split(","):
-            if part == "*":
-                return ((1 << (max - min + 1)) - 1) << min
-
-            step = 1
-            if "/" in part:
-                part, step_str = part.split("/")
-                step = int(step_str)
-                if step <= 0:
-                    raise ValueError("Step must be pos")
-
-            if part == "*":
-                start, end = min, max
-            elif "-" in part:
-                start_str, end_str = part.split("-")
-                start, end = int(start_str), int(end_str)
-            else:
-                start = end = int(part)
-
-            if start < min or end > max or start > end:
-                raise ValueError("Value out of range")
-
-            for v in range(start, end + 1, step):
-                mask |= 1 << v
-
-        return mask
+        fixed_weekday = (dt.weekday() + 1) % 7
+    
+        if dt.month not in self.month:
+            return False
+    
+        if dt.hour not in self.hr:
+            return False
+    
+        if dt.minute not in self.min:
+            return False
+    
+        dom_match = dt.day in self.dom
+        dow_match = fixed_weekday in self.dow
+    
+        if self.dom_star and self.dow_star:
+            return True
+    
+        if self.dom_star:
+            return dow_match
+    
+        if self.dow_star:
+            return dom_match
+    
+        return dom_match or dow_match
 
 
-class CronDate:
-    __slots__ = ("minute", "hour", "day", "month", "weekday", "date")
-
-    def __init__(self, today: datetime):
-        # set details given the date
-        self.minute = self.parse_date(int(today.minute))
-        self.hour = self.parse_date(int(today.hour))
-        self.day = self.parse_date(int(today.day))
-        self.month = self.parse_date(int(today.month))
-        self.weekday = self.parse_date(int(today.weekday()))
-        self.date = today
-        self.date = self.date.replace(second=0, microsecond=0)
-
-        print(self.date)
-        items = [self.minute, self.hour, self.day, self.month, self.weekday]
-        for item in items:
-            self.fun_print(item)
-
-    def parse_date(self, field: int) -> int:
-        return 1 << field
-
-    def fun_print(self, number):
-        print(f"bin = {bin(number)}, zeroes = {self.count_zeroes(number)}")
-
-    def count_zeroes(self, x: int) -> int:
-        # use 2s complement to get the index of least significant bit
-        return (x & -x).bit_length() - 1
-
-    def next_index(self, schedule: int, today: int) -> Tuple[int, bool]:
-        if schedule == 0:
-            # return None, False
-            raise ValueError("The cron schedule is 0")
-        k = self.count_zeroes(today)
-        lower_mask = (1 << k) - 1
-        future_mask = schedule & ~lower_mask
-
-        if future_mask != 0:
-            # some day exists
-            return self.count_zeroes(future_mask), False
-        return self.count_zeroes(schedule), True  # overflow
-
-    def find_nearest(self, cron: CronSpec):
-        # cron is dow or dom
-        # cron type
-        cron_type = cron.dow
-        i = 0
-        keep_going = True
-        dt = self.date
-        while keep_going:
-            i += 1
-            # find month
-            count, overflow = self.next_index(
-                cron.month, self.parse_date(dt.month))
-            if overflow:
-                dt = dt.replace(year=dt.year+1)
-                dt = dt.replace(month=0, day=0, hour=0,
-                                minute=0, second=0, microsecond=0)
-            dt = dt.replace(month=count)
-
-            if cron_type:  # Day of week to be used
-                # find_weekday
-                count, overflow = self.next_index(
-                    cron.weekday, self.parse_date(dt.weekday()))
-                # count contains number of days to go forward. if overflow + 7
-                delta = count - self.date.weekday()
-                if overflow:
-                    delta += 7
-                dt = dt + timedelta(days=delta)
-            else:
-                # find day
-                count, overflow = self.next_index(
-                    cron.day, self.parse_date(dt.day))
-                if overflow:
-                    dt = dt.replace(month=dt.month+1)
-                    dt = dt.replace(day=0, hour=0, minute=0,
-                                    second=0, microsecond=0)
-                dt = dt.replace(day=count)
-
-            # find hour
-            count, overflow = self.next_index(
-                cron.hour, self.parse_date(dt.hour))
-            if overflow:
-                dt += timedelta(days=1)
-            dt = dt.replace(hour=count)
-
-            # find minute
-            count, overflow = self.next_index(
-                cron.minute, self.parse_date(dt.minute))
-            if overflow:
-                dt += timedelta(hours=1)
-            dt = dt.replace(minute=count)
-
-            if i == 10:
-                raise ValueError("Something is wrong")
-
-            # check cron matches
-            if cron.matches(dt):
-                keep_going = False
-
-        return dt
