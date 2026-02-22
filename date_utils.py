@@ -61,7 +61,8 @@ def find_dow(dt: datetime, cron: CronSpec) -> datetime:
         delta = 7 - fixed_weekday + count
     else:
         delta = count - fixed_weekday
-    dt_return = dt_return.replace(hour=0, minute=0) # TODO: experimental feature
+    if delta > 0:
+        dt_return = dt_return.replace(hour=0, minute=0) # TODO: experimental feature
     dt_return += timedelta(days=delta)
 
     if not (dt_return.month in cron.month): # check for month validity
@@ -126,7 +127,10 @@ def find_next_schedule(cron: str, today: datetime) -> datetime:
     cron_spec = CronSpec(cron)
     dt = today.replace(second=0, microsecond=0)
     dt = find_month(dt, cron_spec)
+    print(f"find_month = {dt}")
     dt = find_day(dt, cron_spec)
+    print(f"find_day = {dt}")
     dt = find_hour(dt, cron_spec)
+    print(f"find_hour = {dt}")
     dt = find_minute(dt, cron_spec)
     return dt
