@@ -32,39 +32,26 @@ def find_month(dt: datetime, cron: CronSpec, day_reset: bool= True) -> datetime:
     else:
         if count != dt_out.month: # different month
             if day_reset:
-                print("reset")
                 dt_out = dt_out.replace(month=count, day=1, hour=0, minute=0)
             else:
-                print("no reset")
                 dt_out = dt_out.replace(month=count, hour=0, minute=0)
         # else do nothing. Same month
     return dt_out
 
 def find_dom(dt: datetime, cron: CronSpec) -> datetime:
     dt_return = dt
-    print(dt_return)
     overflow, count = find_next(dt.day, cron.dom)
     if overflow:
         # handle gracefully
-        print("overflow")
-        print(f"count = {count}")
-        print(f"delta = {max_days(dt_return.year, dt_return.month) - dt_return.day + count}")
-        print(f"date before move = {dt_return}")
-        print(f"dom mask = {cron.dom}")
         dt_return += timedelta(days=max_days(dt_return.year, dt_return.month) - dt_return.day + count)
-        print(f"date after move = {dt_return}")
         # handle overflow in the month gracefully
         dt_return = find_month(dt_return, cron, False)
-        print(f"before find month again = {dt_return}")
     else:
-        print("not overflow")
         # by definition of overflow count can't be less than dt.day
         dt_return += timedelta(days=count - dt.day) # move by delta
         # check the month is still correct. Else set it
 
-    print(dt_return)
-    dt_return.replace(hour=0, minute=0)
-    print(dt_return)
+    dt_return = dt_return.replace(hour=0, minute=0)
     return dt_return
 
 def find_dow(dt: datetime, cron: CronSpec) -> datetime:
@@ -78,7 +65,6 @@ def find_dow(dt: datetime, cron: CronSpec) -> datetime:
     dt_return += timedelta(days=delta)
 
     if not (dt_return.month in cron.month): # check for month validity
-        print("RECHECKING MONTH AGAIN")
         dt_return = find_month(dt_return, cron)
     return dt_return
 
@@ -107,26 +93,28 @@ def close_date_helper(today: datetime, dates: List[datetime]) -> datetime:
 
 def find_hour(dt: datetime, cron: CronSpec) -> datetime:
     overflow, count = find_next(dt.hour, cron.hr)
-    if overflow:
-        dt_return = dt + timedelta(hours= 24 -dt.hour+count)
-    else:
-        dt_return = dt + timedelta(hours=count - dt.hour)
-    print("RECHECKING DAY AGAIN")
-    dt_return = find_day(dt_return, cron)
-    return dt_return
+    if not overflow:
+        if count != dt.hour:
+            return dt.replace(hour=count, minute=0)
+        return dt
+    # overflow case
+    dt_next_day = dt.replace(hour=0, minute=0) + timedelta(days=1)
+    dt_next_day = find_day(dt_next_day, cron)
+    first_valid_hour = min(cron.hr)
+    return dt_next_day.replace(hour=first_valid_hour, minute=0)
+
 
 def find_minute(dt: datetime, cron: CronSpec) -> datetime:
     overflow, count = find_next(dt.minute, cron.min)
-    if overflow:
-        dt_return =  dt + timedelta(minutes= 60 - dt.minute + count)
-        print("RECHECKING HOUR")
-        dt_return = find_hour(dt_return, cron)
-    else:
-        dt_return = dt + timedelta(minutes=count - dt.minute)
-        print("RECHECKING HOUR")
-        dt_return = find_hour(dt_return, cron)
-
-    return dt_return
+    if not overflow:
+        if count != dt.minute:
+            return dt.replace(minute=count)
+        return dt
+    # overflow case
+    dt_next_hour = dt.replace(minute=0) + timedelta(hours=1)
+    dt_next_hour = find_hour(dt_next_hour, cron)
+    first_valid_minute = min(cron.min)
+    return dt_next_hour.replace(minute=first_valid_minute)
 
 def find_next_schedule(cron: str, today: datetime) -> datetime:
     cron_spec = CronSpec(cron)
