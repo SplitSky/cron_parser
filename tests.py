@@ -151,7 +151,9 @@ def find_next_date_edge_cases():
     correct_date = datetime.fromisoformat(date)
     today = datetime.fromisoformat("2026-02-22T17:47:00")
     dt = find_next_schedule(cron, today)
+    print("found")
     print(dt)
+    print("correct")
     print(correct_date)
     print(dt == correct_date)
 
