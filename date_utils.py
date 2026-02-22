@@ -13,7 +13,6 @@ def find_next(value: int,schedule: Set[int]) -> Tuple[bool, int]:
     new_mask = copy.deepcopy(schedule) # has to deep copy
     new_mask.difference_update({x for x in schedule if x < value})
     # check if a value ahead exists
-    print(f"mask = {new_mask}")
     if len(new_mask) == 0:
         return True, min(schedule)
     else:
@@ -62,22 +61,29 @@ def find_dow(dt: datetime, cron: CronSpec) -> datetime:
         delta = 7 - fixed_weekday + count
     else:
         delta = count - fixed_weekday
+    dt_return = dt_return.replace(hour=0, minute=0) # TODO: experimental feature
     dt_return += timedelta(days=delta)
 
     if not (dt_return.month in cron.month): # check for month validity
         dt_return = find_month(dt_return, cron)
+
     return dt_return
 
 def find_day(dt: datetime, cron: CronSpec) -> datetime:
+    if cron.dom_star and cron.dow_star:
+        return dt
+
     if not cron.dow_star and not cron.dom_star:
-        # OR logic finding closest
         dow_date = find_dow(dt, cron)
         dom_date = find_dom(dt, cron)
+        print(f"both dates dow, dom = {dow_date}, {dom_date}")
         return close_date_helper(dt, [dow_date, dom_date])
-    elif cron.dom_star and not cron.dow_star:
+
+    if cron.dom_star:
         return find_dow(dt, cron)
-    else:
-        return find_dom(dt, cron)
+
+    return find_dom(dt, cron)
+
 
 def close_date_helper(today: datetime, dates: List[datetime]) -> datetime:
     closest = timedelta(days=1000000)
@@ -118,12 +124,9 @@ def find_minute(dt: datetime, cron: CronSpec) -> datetime:
 
 def find_next_schedule(cron: str, today: datetime) -> datetime:
     cron_spec = CronSpec(cron)
-    dt = find_month(today, cron_spec)
-    print(f"find month = {dt}")
+    dt = today.replace(second=0, microsecond=0)
+    dt = find_month(dt, cron_spec)
     dt = find_day(dt, cron_spec)
-    print(f"find day = {dt}")
     dt = find_hour(dt, cron_spec)
-    print(f"find hour = {dt}")
     dt = find_minute(dt, cron_spec)
-    print(f"find minute = {dt}")
     return dt

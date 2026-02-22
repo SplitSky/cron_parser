@@ -83,16 +83,28 @@ class CronSpec:
 
     def matches(self, dt: datetime) -> bool:
         fixed_weekday = (dt.weekday() + 1) % 7
-        # the above fixes the convention difference between cron and datetime library
-        if not dt.month in self.month:
+    
+        if dt.month not in self.month:
             return False
-        if not dt.hour in self.hr:
+    
+        if dt.hour not in self.hr:
             return False
-        if not dt.minute in self.min:
+    
+        if dt.minute not in self.min:
             return False
-        if not(dt.day in self.dom or fixed_weekday in self.dow):
-            # by De Morgan's law
-            return False
-        return True
+    
+        dom_match = dt.day in self.dom
+        dow_match = fixed_weekday in self.dow
+    
+        if self.dom_star and self.dow_star:
+            return True
+    
+        if self.dom_star:
+            return dow_match
+    
+        if self.dow_star:
+            return dom_match
+    
+        return dom_match or dow_match
 
 

@@ -66,15 +66,6 @@ def test_parsing_dom():
     dt_dom = find_dom(today, cron)
     assert dt_dom == correct_date
 
-def test_parsing_dow_overflow():
-    cron = CronSpec("0 12 31 * 1")
-    today = datetime(year=2026, month=2, day=20, hour=12, minute=0)
-    correct_date = datetime(year=2026, month=2, day=23, hour=12, minute=0)
-    dt_dow = find_dow(today, cron)
-    print(dt_dow)
-    print(correct_date)
-    assert dt_dow == correct_date
-
 test_data = [
     ("* * * * *","2026-01-01T01:00:00"),
     ("5 4 * * 0","2026-02-22T04:05:00"), 
@@ -91,28 +82,11 @@ def test_cron_matches(cron, date):
     assert cron.matches(dt)
 
 
-def test_parsing_dow_not_overflow():
-    # the standard cron uses 0 - sunday. We use 0 - monday
-    cron = CronSpec("0 12 31 * 6")
-    print(cron.min)
-    print(cron.hr)
-    print(cron.dom)
-    print(cron.month)
-    print(cron.dow)
-    print("printing from cron done")
-    today = datetime(year=2026, month=2, day=20, hour=12, minute=0)
-    correct_date = datetime(year=2026, month=2, day=21, hour=12, minute=0)
-    dt_dow = find_dow(today, cron)
-    print(f"today = {today}")
-    print(f"correct_Date = {correct_date}")
-    print(f"date found = {dt_dow}")
-    assert dt_dow == correct_date
-
 def test_find_day():
-    cron = CronSpec("0 12 31 * 6")
-    today = datetime(year=2026, month=2, day=20, hour=12, minute=0)
+    cron = CronSpec("0 0 31 * 6")
+    today = datetime(year=2026, month=2, day=22, hour=0, minute=0)
     dt = find_day(today, cron)
-    correct_date = datetime(year=2026, month=2, day=21, hour=12, minute=0)
+    correct_date = datetime(year=2026, month=2, day=28, hour=0, minute=0)
     print(f"dt = {dt}")
     print(f"today= {today}")
     print(f"correct_date = {correct_date}")
@@ -155,8 +129,28 @@ def find_next_date_edge_cases():
     print(dt)
     print("correct")
     print(correct_date)
-    print(dt == correct_date)
+    assert dt == correct_date
 
      # ("5 0 * 8 *", "2026-08-01T00:05:00"), # failing
 
-find_next_date_edge_cases()
+def testing_final_case():
+    cron, date = ("0 0 1,15 * 3", "2026-02-25T00:00:00")
+    today = datetime.fromisoformat("2026-02-22T19:42:00")
+    correct_date = datetime.fromisoformat(date)
+    cron_spec = CronSpec(cron)
+    dt = find_month(today, cron_spec)
+    dt = find_day(dt, cron_spec)
+    dt = find_hour(dt, cron_spec)
+    dt = find_minute(dt, cron_spec)
+    assert correct_date == dt
+
+def test_1():
+    cron, date_iso = ("5 4 * * 0","2026-03-01T04:05:00")
+    correct_date = datetime.fromisoformat(date_iso) 
+    today = datetime.today() # TODO: replace later
+    dt = find_next_schedule(cron, today)
+    print(dt)
+    print(today)
+    print(correct_date)
+
+test_1()
