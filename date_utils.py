@@ -8,6 +8,7 @@ def find_next(value: int,schedule: Set[int]) -> Tuple[bool, int]:
     new_mask = copy.deepcopy(schedule) # has to deep copy
     new_mask.difference_update({x for x in schedule if x < value})
     # check if a value ahead exists
+    print(f"mask = {new_mask}")
     if len(new_mask) == 0:
         return True, min(schedule)
     else:
@@ -75,9 +76,13 @@ def close_date_helper(today: datetime, dates: List[datetime]) -> datetime:
 def find_hour(dt: datetime, cron: CronSpec) -> datetime:
     overflow, count = find_next(dt.hour, cron.hr)
     if overflow:
+        print("overflow")
         dt_return = dt + timedelta(hours= 24 -dt.hour+count)
         dt_return = find_day(dt_return, cron)
     else:
+        print("no overflow")
+        print(f"dt = {dt}")
+        print(f"timedelta = {timedelta(hours=count - dt.hour)}")
         dt_return = dt + timedelta(hours=count - dt.hour)
         dt_return = find_day(dt_return, cron)
 
@@ -85,25 +90,29 @@ def find_hour(dt: datetime, cron: CronSpec) -> datetime:
 
 def find_minute(dt: datetime, cron: CronSpec) -> datetime:
     overflow, count = find_next(dt.minute, cron.min)
+    print(f"find minute start date: {dt}")
     if overflow:
         dt_return =  dt + timedelta(minutes= 60 - dt.minute + count)
         dt_return = find_hour(dt_return, cron)
     else:
-        dt_return = dt + timedelta(minutes=count + dt.minute)
+        print("no overflow find minute")
+        dt_return = dt + timedelta(minutes=count - dt.minute)
+        print(dt_return)
         dt_return = find_hour(dt_return, cron)
+        print(dt_return)
 
     return dt_return
 
 def find_next_schedule(cron: str, today: datetime) -> datetime:
     cron_spec = CronSpec(cron)
     dt = find_month(today, cron_spec)
-    print(dt)
+    print(f"find month = {dt}")
     dt = find_day(dt, cron_spec)
-    print(dt)
+    print(f"find day = {dt}")
     dt = find_hour(dt, cron_spec)
-    print(dt)
+    print(f"find hour = {dt}")
     dt = find_minute(today, cron_spec)
-    print(dt)
+    print(f"find minute = {dt}")
     return dt
 
 

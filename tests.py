@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
+from inspect import CORO_RUNNING
 from types import ModuleType
 from typing import assert_never
 from _pytest.config import ConftestImportFailure
@@ -131,11 +132,11 @@ def test_find_minute():
     assert dt == correct_date
 
 test_data = [
-    ("* * * * *","2026-02-20T18:30:00"),
     ("5 4 * * 0","2026-02-22T04:05:00"), 
     ("0 0,12 1 */2 *", "2026-03-01T00:00:00"),
     ("0 4 8-14 * *", "2026-03-08T04:00:00"),
     ("0 0 1,15 * 3", "2026-02-25T00:00:00"),
+    ("* * * * *","2026-02-20T18:30:00"),
     ("5 0 * 8 *", "2026-08-01T00:05:00"),
     ]
 
@@ -146,3 +147,16 @@ def test_find_next_date(cron, date):
     correct_date = datetime.fromisoformat(date)
     assert dt == correct_date
     
+def find_next_date_edge_cases():
+    # correct_date = datetime.fromisoformat("2026-02-20T18:30:00")
+    correct_date = datetime.fromisoformat("2026-08-01T00:05:00")
+    today = datetime.fromisoformat("2026-02-20T18:30:00")
+    dt = find_next_schedule("5 0 * 8 *", today)
+    print(dt)
+    print(correct_date)
+    print(dt == correct_date)
+
+     # ("5 0 * 8 *", "2026-08-01T00:05:00"), # failing
+
+
+find_next_date_edge_cases()
