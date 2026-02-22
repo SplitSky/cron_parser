@@ -77,7 +77,6 @@ def find_day(dt: datetime, cron: CronSpec) -> datetime:
     if not cron.dow_star and not cron.dom_star:
         dow_date = find_dow(dt, cron)
         dom_date = find_dom(dt, cron)
-        print(f"both dates dow, dom = {dow_date}, {dom_date}")
         return close_date_helper(dt, [dow_date, dom_date])
 
     if cron.dom_star:
@@ -127,10 +126,7 @@ def find_next_schedule(cron: str, today: datetime) -> datetime:
     cron_spec = CronSpec(cron)
     dt = today.replace(second=0, microsecond=0)
     dt = find_month(dt, cron_spec)
-    print(f"find_month = {dt}")
     dt = find_day(dt, cron_spec)
-    print(f"find_day = {dt}")
     dt = find_hour(dt, cron_spec)
-    print(f"find_hour = {dt}")
     dt = find_minute(dt, cron_spec)
     return dt

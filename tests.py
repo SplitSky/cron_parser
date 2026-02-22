@@ -1,10 +1,3 @@
-from dataclasses import dataclass
-from datetime import date
-from inspect import CORO_RUNNING
-from types import ModuleType
-from typing import assert_never
-from _pytest.config import ConftestImportFailure
-from _pytest.monkeypatch import monkeypatch
 import pytest
 from cron import CronSpec
 from date_utils import *
@@ -87,9 +80,6 @@ def test_find_day():
     today = datetime(year=2026, month=2, day=22, hour=0, minute=0)
     dt = find_day(today, cron)
     correct_date = datetime(year=2026, month=2, day=28, hour=0, minute=0)
-    print(f"dt = {dt}")
-    print(f"today= {today}")
-    print(f"correct_date = {correct_date}")
     assert correct_date == dt
 
 def test_find_hour():
@@ -97,10 +87,7 @@ def test_find_hour():
     today = datetime(year=2026, month=2, day=22, hour=17, minute=0)
     correct_date = datetime(year=2027, month=1, day=1, hour=1, minute=0)
     dt = find_hour(today, cron)
-    print(f"DT = {dt}")
-    print(f"CORRECT _DATE = {correct_date}")
-    # assert dt == correct_date
-    print(dt == correct_date)
+    assert dt == correct_date
 
 test_data = [
     ("5 4 * * 0","2026-03-01T04:05:00"),
@@ -125,10 +112,6 @@ def find_next_date_edge_cases():
     correct_date = datetime.fromisoformat(date)
     today = datetime.fromisoformat("2026-02-22T17:47:00")
     dt = find_next_schedule(cron, today)
-    print("found")
-    print(dt)
-    print("correct")
-    print(correct_date)
     assert dt == correct_date
 
      # ("5 0 * 8 *", "2026-08-01T00:05:00"), # failing
@@ -147,10 +130,29 @@ def testing_final_case():
 def test_1():
     cron, date_iso = ("5 4 * * 0","2026-03-01T04:05:00")
     correct_date = datetime.fromisoformat(date_iso) 
-    today = datetime.today() # TODO: replace later
+    today = datetime.fromisoformat("2026-02-22 20:34:16.731693")
     dt = find_next_schedule(cron, today)
-    print(dt)
-    print(today)
-    print(correct_date)
-
+    assert dt == correct_date
 test_1()
+
+big_test_data = [
+("5 0 * 8 *","2026-08-01 00:05:00"),
+("15 14 1 * *","2026-03-01 14:15:00"),
+("0 22 * * 1-5","2026-02-23 22:00:00"),
+#("23 0-20/2 * * *","2026-02-23 00:23:00"),
+("0 0,12 1 */2 *","2026-03-01 00:00:00"),
+("0 4 8-14 * *","2026-03-08 04:00:00"),
+("5 0 * 8 *","2026-08-01 00:05:00"),
+("15 14 1 * *","2026-03-01 14:15:00"),
+("0 22 * * 1-5","2026-02-23 22:00:00"),
+# ("23 0-20/2 * * *","2026-02-23 00:23:00"), # these test cases are not implemented on purpose
+]
+
+@pytest.mark.parametrize("cron,date", big_test_data)
+def test_many_cases(cron, date):
+    today = datetime.fromisoformat("2026-02-22T20:37:00")
+    dt = find_next_schedule(cron, today)
+    correct_date = datetime.fromisoformat(date)
+    assert dt == correct_date
+
+
