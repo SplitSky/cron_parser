@@ -55,13 +55,14 @@ def test_find_next():
 def test_find_month():
     today = datetime(year=2020, month=1, day=1, hour=12, minute=0)
     cron = CronSpec("* * * 3 *")
-    dt = find_month(today, cron)
+    dt = find_month(today, cron, True)
     assert dt.month == 3
 
 def test_parsing_dom():
     cron = CronSpec("0 12 6 2,7 *")
-    today = datetime(year=2026, month=2, day=20, hour=12, minute=0)
-    correct_date = datetime(year=2026, month=7, day=6, hour=12, minute=0)
+    today = datetime(year=2026, month=2, day=20, hour=0, minute=0)
+    correct_date = datetime(year=2026, month=7, day=6, hour=0, minute=0)
+    # NOTE: The hour is 0 because it is required to overflow and reset to 0
     dt_dom = find_dom(today, cron)
     assert dt_dom == correct_date
 
@@ -159,5 +160,4 @@ def find_next_date_edge_cases():
 
      # ("5 0 * 8 *", "2026-08-01T00:05:00"), # failing
 
-
-find_next_date_edge_cases()
+test_parsing_dom()
