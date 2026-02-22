@@ -21,8 +21,7 @@ def find_month(dt: datetime, cron: CronSpec) -> datetime:
     if overflow:
         # increment year
         dt_out = dt_out.replace(year=dt.year + 1)
-    dt_out = dt_out.replace(month=count)
-    return dt_out
+    return dt_out.replace(month=count)
 
 def find_dom(dt: datetime, cron: CronSpec) -> datetime:
     dt_return = dt
@@ -65,8 +64,8 @@ def close_date_helper(today: datetime, dates: List[datetime]) -> datetime:
     closest = timedelta(days=1000000)
     chosen_date = None
     for date in dates:
-        delta = abs(today - date)
-        if delta < closest:
+        delta = date - today
+        if delta >= timedelta(0) and delta < closest:
             chosen_date = date
             closest = delta
     if chosen_date is None:
@@ -76,13 +75,9 @@ def close_date_helper(today: datetime, dates: List[datetime]) -> datetime:
 def find_hour(dt: datetime, cron: CronSpec) -> datetime:
     overflow, count = find_next(dt.hour, cron.hr)
     if overflow:
-        print("overflow")
         dt_return = dt + timedelta(hours= 24 -dt.hour+count)
         dt_return = find_day(dt_return, cron)
     else:
-        print("no overflow")
-        print(f"dt = {dt}")
-        print(f"timedelta = {timedelta(hours=count - dt.hour)}")
         dt_return = dt + timedelta(hours=count - dt.hour)
         dt_return = find_day(dt_return, cron)
 
@@ -90,16 +85,12 @@ def find_hour(dt: datetime, cron: CronSpec) -> datetime:
 
 def find_minute(dt: datetime, cron: CronSpec) -> datetime:
     overflow, count = find_next(dt.minute, cron.min)
-    print(f"find minute start date: {dt}")
     if overflow:
         dt_return =  dt + timedelta(minutes= 60 - dt.minute + count)
         dt_return = find_hour(dt_return, cron)
     else:
-        print("no overflow find minute")
         dt_return = dt + timedelta(minutes=count - dt.minute)
-        print(dt_return)
         dt_return = find_hour(dt_return, cron)
-        print(dt_return)
 
     return dt_return
 
@@ -111,7 +102,7 @@ def find_next_schedule(cron: str, today: datetime) -> datetime:
     print(f"find day = {dt}")
     dt = find_hour(dt, cron_spec)
     print(f"find hour = {dt}")
-    dt = find_minute(today, cron_spec)
+    dt = find_minute(dt, cron_spec)
     print(f"find minute = {dt}")
     return dt
 
