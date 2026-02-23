@@ -1,15 +1,14 @@
 from datetime import datetime
-from types import LambdaType
 from typing import Set
 
 # special cron characters substitutions
 SPECIALS = {
-        "@yearly": "0 0 1 1 *",
-        "@monthly": "0 0 1 * *",
-        "@weekly": "0 0 * * 0",
-        "@daily": "0 0 * * *",
-        "@hourly": "0 * * * *"
-        }
+    "@yearly": "0 0 1 1 *",
+    "@monthly": "0 0 1 * *",
+    "@weekly": "0 0 * * 0",
+    "@daily": "0 0 * * *",
+    "@hourly": "0 * * * *"
+}
 
 """convention for ranges
 minutes: 0 - 59
@@ -21,13 +20,14 @@ dow: 0 - 6 (6 == Sunday)
 proper cron dow: 0 - 6 (0 == Sunday, 6 == Saturday)
 """
 
+
 class CronSpec:
     def __init__(self, cron_expr: str):
         parts = cron_expr.split()
         if len(parts) > 5:
             raise ValueError("Cron length exceeded")
 
-        if cron_expr in SPECIALS.keys(): # substitution for specials
+        if cron_expr in SPECIALS.keys():  # substitution for specials
             parts = SPECIALS[cron_expr].split()
 
         self.dom_star = False
@@ -57,10 +57,11 @@ class CronSpec:
             for part in parts:
                 if "-" in part:
                     temp = part.split("-")
-                    return_set.update(set(range(int(temp[0]), int(temp[1])+1,1)))
+                    return_set.update(
+                        set(range(int(temp[0]), int(temp[1])+1, 1)))
                 else:
                     return_set.add(int(part))
-        
+
         if "/" in expr:
             parts = expr.split("/")
             if "*/" in expr:
@@ -74,7 +75,7 @@ class CronSpec:
             # simple range
             parts = expr.split("-")
             return_set.update(set(range(int(parts[0]), int(parts[1])+1, 1)))
-        
+
         # if single number
         if expr.isdigit():
             return_set.add(int(expr))
@@ -83,28 +84,26 @@ class CronSpec:
 
     def matches(self, dt: datetime) -> bool:
         fixed_weekday = (dt.weekday() + 1) % 7
-    
+
         if dt.month not in self.month:
             return False
-    
+
         if dt.hour not in self.hr:
             return False
-    
+
         if dt.minute not in self.min:
             return False
-    
+
         dom_match = dt.day in self.dom
         dow_match = fixed_weekday in self.dow
-    
+
         if self.dom_star and self.dow_star:
             return True
-    
+
         if self.dom_star:
             return dow_match
-    
+
         if self.dow_star:
             return dom_match
-    
+
         return dom_match or dow_match
-
-
